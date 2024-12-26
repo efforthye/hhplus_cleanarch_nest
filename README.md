@@ -120,5 +120,4 @@
 - pnpm run test
 
 ## postman example
-- 특정 날짜에 신청 가능한 특강 목록 조회
-![Uploading 스크린샷 2024-12-27 오전 4.36.57.png…]()
+- 특정 날짜에 신청 가능한 특강 목록 조회: ![alt text](image-2.png)
