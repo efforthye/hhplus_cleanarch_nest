@@ -112,3 +112,12 @@
 - filters: 예외 처리 정의
 - decorators: 컨트롤러/메소드 데코레이터 정의
 - validators: 입력 데이터 유효성 검사 추가
+<br/><br/><br/>
+
+# 프로젝트 실행 방법
+- pnpm install
+- pnpm run start
+- pnpm run test
+
+## postman example
+- 특정 날짜에 신청 가능한 특강 목록 조회: ![alt text](image-1.png)
