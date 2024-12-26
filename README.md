@@ -1,4 +1,4 @@
-<img width="1126" alt="스크린샷 2024-12-27 오전 4 36 57" src="https://github.com/user-attachments/assets/1036f5fc-9659-4dbc-a62b-da54e01397af" /># 특강 신청 시스템
+# 특강 신청 시스템
 
 ## ERD Diagram
 ![alt text](images/erd_diagram.png)
