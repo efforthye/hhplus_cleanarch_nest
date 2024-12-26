@@ -82,28 +82,18 @@ export const addDummyData = async (dataSource: DataSource) => {
     } else {
       console.log('Special lectures already exist. Skipping...');
     }
- 
+    
     // 사용자 데이터 확인 및 생성
     const userCount = await dataSource.getRepository(User).count();
     if (userCount === 0) {
-      const users = await dataSource.getRepository(User).save([
-        {
-          userId: 'efforthye',
-          name: '박혜림',
-          registrations: []
-        },
-        {
-          userId: 'efforthye2',
-          name: '박혜림2',
-          registrations: []
-        },
-        {
-          userId: 'efforthye3',
-          name: '박혜림3',
-          registrations: []
-        }
-      ]);
-      console.log(`Created ${users.length} users`);
+      const users = Array.from({ length: 100 }, (_, index) => ({
+        userId: `efforthye${index + 1}`,
+        name: `박혜림${index + 1}`,
+        registrations: [],
+      }));
+
+      const savedUsers = await dataSource.getRepository(User).save(users);
+      console.log(`Created ${savedUsers.length} users`);
     } else {
       console.log('Users already exist. Skipping...');
     }

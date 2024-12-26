@@ -23,6 +23,8 @@ export class SpecialLectureService {   /**
         private lectureRepository: Repository<SpecialLecture>,
         @InjectRepository(SpecialLectureRegist)
         private registrationRepository: Repository<SpecialLectureRegist>,
+        // 트랜잭션을 위해 데이터 소스 주입
+        private dataSource: DataSource, 
     ) {}
 
 
@@ -93,26 +95,36 @@ export class SpecialLectureService {   /**
      * 신청 유저 아이디와 특강 아이디가 존재하지 않는 경우 오류를 발생시킨다.
      */
     async registerForSpecialLecture(userId: string, specialLectureId: number) {
-        // 유저 정보를 조회한다.
-        const user = await this.userRepository.findOne({ where: { userId } });
-        if (!user) throw new Error(`User with ID ${userId} not found.`);
-
-        // 특강 정보를 조회한다.
-        const lecture = await this.lectureRepository.findOne({ where: { id: specialLectureId }});
-        if (!lecture) throw new Error(`Special lecture with ID ${specialLectureId} not found.`);
-
-        // 특강 신청 객체를 생성한다.
-        const registration = this.registrationRepository.create({
+        return await this.dataSource.transaction(async (manager) => {
+          // 유저 정보 확인
+          const user = await manager.getRepository(User).findOne({ where: { userId } });
+          if (!user) throw new Error(`User with ID ${userId} not found.`);
+      
+          // 특강 정보 확인 및 잠금 적용
+          const lecture = await manager.getRepository(SpecialLecture).findOne({
+            where: { id: specialLectureId },
+            lock: { mode: 'pessimistic_write' }, // 트랜잭션 잠금
+          });
+          if (!lecture) throw new Error(`Special lecture with ID ${specialLectureId} not found.`);
+          if (lecture.currentParticipants >= lecture.maxParticipants) {
+            throw new Error('The lecture is fully booked.');
+          }
+      
+          // 참가자 수 증가
+          lecture.currentParticipants += 1;
+          await manager.getRepository(SpecialLecture).save(lecture);
+      
+          // 신청 정보 생성 및 저장
+          const registration = manager.getRepository(SpecialLectureRegist).create({
             user,
             userId: user.userId,
             specialLecture: lecture,
             specialLectureId: lecture.id,
+          });
+          await manager.getRepository(SpecialLectureRegist).save(registration);
+      
+          return registration;
         });
-
-        // 특강 신청 정보를 데이터베이스에 저장한다.
-        await this.registrationRepository.save(registration);
-
-        return registration;
     }
 
 
@@ -147,5 +159,4 @@ export class SpecialLectureService {   /**
 
         return registration;
     }
-
 }

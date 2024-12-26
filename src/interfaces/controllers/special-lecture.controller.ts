@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param } from '@nestjs/common';
+import { Controller, Post, Get, Param, BadRequestException } from '@nestjs/common';
 import { SpecialLectureService } from 'src/domain/special-lecture/services/special-lecture.service';
 
 @Controller('special-lecture')
@@ -45,16 +45,20 @@ export class SpecialLectureController {
     * 2. 유효한 특강 아이디
     * 3. 신청 가능한 상태의 특강(OPEN)
     * 4. 수강 인원이 마감되지 않은 특강
-    */
+  */
   @Post(':userId/:specialLectureId')
   async registerLecture(
     @Param('userId') userId: string,
     @Param('specialLectureId') specialLectureId: number,
   ) {
-    return await this.specialLectureService.registerForSpecialLecture(
-      userId,
-      specialLectureId
-    );
+    try {
+      return await this.specialLectureService.registerForSpecialLecture(userId, specialLectureId);
+    } catch (error) {
+      if (error.message === 'The lecture is fully booked.') {
+        throw new BadRequestException('신청 가능한 인원이 초과되었습니다.');
+      }
+      throw error;
+    }
   }
 
   /**
