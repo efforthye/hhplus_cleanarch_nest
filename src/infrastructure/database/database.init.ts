@@ -71,8 +71,8 @@ export const addDummyData = async (dataSource: DataSource) => {
           title: '실전 물경력 탈출 Java 백엔드 개발',
           lecturer: lecturers[1],
           lecturerId: lecturers[1].id,
-          date: new Date('2024-01-15'),
-          maxParticipants: 25,
+          date: new Date('2024-12-28'),
+          maxParticipants: 30,
           currentParticipants: 0,
           status: SpecialLectureStatus.OPEN,
           registrations: []

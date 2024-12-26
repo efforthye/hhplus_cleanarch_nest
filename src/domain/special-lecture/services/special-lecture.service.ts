@@ -1,8 +1,9 @@
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, LessThan, MoreThan, MoreThanOrEqual, Not, Raw, Repository } from 'typeorm';
 import { User } from 'src/domain/entities/user.entity';
 import { SpecialLecture } from 'src/domain/entities/special-lecture.entity';
 import { SpecialLectureRegist } from 'src/domain/entities/special-lecture-regist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { SpecialLectureStatus } from 'src/domain/entities/enums';
 
 export class SpecialLectureService {   /**
     * SpecialLectureService 생성자
@@ -23,6 +24,64 @@ export class SpecialLectureService {   /**
         @InjectRepository(SpecialLectureRegist)
         private registrationRepository: Repository<SpecialLectureRegist>,
     ) {}
+
+
+    /**
+     * 신청 가능한 특강 목록 조회
+     * @returns 현재 신청 가능한 특강 목록
+     * 
+     * 조건:
+     * 1. OPEN 상태인 특강
+     * 2. 현재 날짜 이후의 특강
+     * 3. 신청 인원이 마감되지 않은 특강
+     */
+    async getAvailableLectures() {
+        const currentDate = new Date(); // 현재 날짜
+        return await this.lectureRepository.find({
+            where: {
+                status: SpecialLectureStatus.OPEN,
+                date: MoreThanOrEqual(currentDate),
+                currentParticipants: LessThan(30)
+            },
+            relations: ['lecturer'],
+            order: {date: 'ASC'}, // 날짜 오름차순 정렬
+        });
+    }
+
+    /**
+     * 특정 사용자가 신청 가능한 특강 목록 조회
+     * @param userId 조회할 사용자의 ID
+     * @returns 해당 사용자가 신청 가능한 특강 목록
+     */
+    async getAvailableLecturesForUser(userId: string) {
+        const user = await this.userRepository.findOne({ where: { userId } });
+        if (!user) {
+            // 사용자가 존재하지 않는 경우 빈 배열 반환
+            return [];
+        }
+
+        const userRegistrations = await this.registrationRepository.find({ where: { userId } });
+        const registeredLectureIds = userRegistrations.map(reg => reg.specialLectureId);
+
+        const whereCondition: any = {
+            status: SpecialLectureStatus.OPEN,
+            date: MoreThanOrEqual(new Date()),
+            currentParticipants: LessThan(30)
+        };
+
+        // 사용자가 이미 신청한 특강은 제외
+        if (registeredLectureIds.length > 0) {
+            whereCondition.id = Not(In(registeredLectureIds));
+        }
+
+        return await this.lectureRepository.find({
+            where: whereCondition,
+            relations: ['lecturer'],
+            order: {
+                date: 'ASC'
+            }
+        });
+    }
 
     /**
      * 특강 신청 함수
