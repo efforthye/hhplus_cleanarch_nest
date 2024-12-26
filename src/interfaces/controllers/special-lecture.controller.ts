@@ -16,6 +16,29 @@ export class SpecialLectureController {
     return await this.specialLectureService.getAvailableLectures();
   }
 
+  
+  /**
+   * 특정 날짜의 신청 가능한 특강 목록 조회
+   * @param date - 조회할 날짜 (YYYY-MM-DD 형식 문자열)
+   * @returns 신청 가능한 특강 목록
+   * 
+   * 조건:
+   * - 특강 상태가 OPEN인 경우
+   * - 현재 신청 인원이 30명 미만인 경우
+   * - 입력된 날짜와 특강 날짜가 일치하는 경우
+   */
+  @Get('available/lectures/date/:date')
+  async getAvailableLecturesByDate(
+    @Param('date') date: string,
+  ) {
+    const parsedDate = new Date(date); // 입력받은 문자열을 Date 객체로 변환
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Invalid date format. Please use YYYY-MM-DD.');
+    }
+    return await this.specialLectureService.getAvailableLecturesByDate(parsedDate);
+  }
+
+
   /**
    * 특정 사용자가 신청 가능한 특강 목록 조회
    * @param userId 조회하려는 사용자의 ID

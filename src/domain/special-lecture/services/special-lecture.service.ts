@@ -27,6 +27,28 @@ export class SpecialLectureService {   /**
         private dataSource: DataSource, 
     ) {}
 
+    
+    /**
+     * 특정 날짜의 신청 가능한 특강 목록 조회
+     * @param date - 조회할 날짜 (Date 객체)
+     * @returns 신청 가능한 특강 목록
+     * 
+     * 조건:
+     * - 특강 상태가 OPEN인 경우
+     * - 현재 신청 인원이 30명 미만인 경우
+     * - 입력한 날짜와 특강 날짜가 일치하는 경우
+    */
+    async getAvailableLecturesByDate(date: Date) {
+        return await this.lectureRepository.find({
+          where: {
+            status: SpecialLectureStatus.OPEN,
+            date: date,
+            currentParticipants: LessThan(30),
+          },
+          relations: ['lecturer'], // 강사 정보를 포함
+          order: { date: 'ASC' }, // 날짜 오름차순 정렬
+        });
+    }
 
     /**
      * 신청 가능한 특강 목록 조회
