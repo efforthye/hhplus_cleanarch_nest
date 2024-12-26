@@ -11,5 +11,6 @@ export const databaseConfig: TypeOrmModuleOptions = {
   entities: [path.join(__dirname, '../../domain/entities/*.entity{.ts,.js}')],
   synchronize: true,  // 개발환경에서만 true
   logging: true,
+  autoLoadEntities: true,
   charset: 'utf8mb4'
 };
