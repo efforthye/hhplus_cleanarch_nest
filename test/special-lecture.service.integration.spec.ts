@@ -140,5 +140,95 @@ describe('특강 신청 서비스 테스트', () => {
     expect(mockLectureRepository.save).toHaveBeenCalledTimes(40); // 총 요청 수만큼 호출
     expect(mockRegistrationRepository.save).toHaveBeenCalledTimes(30); // 등록이 30번 저장됨
   });
+
+
+  it('동일한 유저가 같은 특강에 5번 신청시 1번 성공, 4번 실패하는지 확인', async () => {
+    // Arrange
+    const specialLectureId = 1;
+    const userId = 'efforthye23';
+    let currentParticipants = 0;
+  
+    // Mock User Repository 초기화
+    mockUserRepository = {
+      findOne: jest.fn(({ where: { userId: id } }) => (id === userId ? { userId } : null)),
+    };
+  
+    // Mock Lecture Repository 초기화
+    mockLectureRepository = {
+      findOne: jest.fn().mockImplementation(() => ({
+        id: specialLectureId,
+        currentParticipants,
+        maxParticipants: 30,
+        status: SpecialLectureStatus.OPEN,
+        date: new Date(Date.now() + 100000), // 미래 날짜
+      })),
+      save: jest.fn().mockImplementation((lecture) => {
+        if (currentParticipants >= 30) {
+          throw new Error('The lecture is fully booked.');
+        }
+        currentParticipants++;
+        return {
+          ...lecture,
+          currentParticipants,
+        };
+      }),
+    };
+  
+    // Mock Registration Repository 초기화
+    const registrations = new Set();
+    mockRegistrationRepository = {
+      create: jest.fn((registration) => registration),
+      save: jest.fn().mockImplementation((registration) => {
+        const registrationKey = `${registration.userId}_${registration.specialLectureId}`;
+        if (registrations.has(registrationKey)) {
+          throw new Error('Duplicate registration.');
+        }
+        registrations.add(registrationKey);
+        return registration;
+      }),
+    };
+  
+    // Mock DataSource 초기화
+    mockDataSource = {
+      transaction: jest.fn(async (callback) => {
+        const manager = {
+          getRepository: (entity) => {
+            if (entity === User) return mockUserRepository;
+            if (entity === SpecialLecture) return mockLectureRepository;
+            if (entity === SpecialLectureRegist) return mockRegistrationRepository;
+            return null;
+          },
+        };
+        return callback(manager);
+      }),
+    };
+  
+    // Service 재정의
+    service = new SpecialLectureService(
+      mockUserRepository as any,
+      mockLectureRepository as any,
+      mockRegistrationRepository as any,
+      mockDataSource as any,
+    );
+  
+    const results: Array<Promise<any>> = [];
+  
+    // Act
+    for (let i = 0; i < 5; i++) {
+      results.push(
+        service.registerForSpecialLecture(userId, specialLectureId).catch((error) => error.message),
+      );
+    }
+  
+    const resolvedResults = await Promise.all(results);
+  
+    // Assert
+    const successCount = resolvedResults.filter((result) => typeof result !== 'string').length;
+    const failCount = resolvedResults.filter((result) => result === 'Duplicate registration.').length;
+  
+    expect(successCount).toBe(1); // 1번 성공
+    expect(failCount).toBe(4); // 4번 실패
+    expect(mockRegistrationRepository.save).toHaveBeenCalledTimes(5); // 총 5번 save 호출
+  });
   
 });

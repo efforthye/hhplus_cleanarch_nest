@@ -9,8 +9,8 @@ import { SpecialLectureService } from "src/domain/special-lecture/services/speci
 
 // 테스트 데이터 상수 정의
 const TEST_USER = {
-  userId: 'efforthye',
-  name: '박혜림',
+  userId: 'efforthye1',
+  name: '박혜림1',
 };
 
 const TEST_SPECIAL_LECTURES = [

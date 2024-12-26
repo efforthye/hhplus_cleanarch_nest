@@ -3,7 +3,7 @@ import { User } from 'src/domain/entities/user.entity';
 import { SpecialLecture } from 'src/domain/entities/special-lecture.entity';
 import { SpecialLectureRegist } from 'src/domain/entities/special-lecture-regist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SpecialLectureStatus } from 'src/domain/entities/enums';
+import { RegistrationStatus, SpecialLectureStatus } from 'src/domain/entities/enums';
 
 export class SpecialLectureService {   /**
     * SpecialLectureService 생성자
@@ -106,27 +106,40 @@ export class SpecialLectureService {   /**
             lock: { mode: 'pessimistic_write' }, // 트랜잭션 잠금
           });
           if (!lecture) throw new Error(`Special lecture with ID ${specialLectureId} not found.`);
-          if (lecture.currentParticipants >= lecture.maxParticipants) {
-            throw new Error('The lecture is fully booked.');
+      
+          // 현재 시간과 참가자 제한 확인
+          const now = new Date();
+          let registrationStatus: RegistrationStatus;
+      
+          if (lecture.currentParticipants >= lecture.maxParticipants || now >= lecture.date) {
+            // 강의 상태를 CLOSED로 변경
+            lecture.status = SpecialLectureStatus.CLOSED;
+            await manager.getRepository(SpecialLecture).save(lecture);
+            // 신청 상태를 REJECTED로 설정
+            registrationStatus = RegistrationStatus.REJECTED;
+          } else {
+            // 신청 성공
+            lecture.currentParticipants += 1; // 참가자 수 증가
+            await manager.getRepository(SpecialLecture).save(lecture);
+            registrationStatus = RegistrationStatus.APPROVED;
           }
       
-          // 참가자 수 증가
-          lecture.currentParticipants += 1;
-          await manager.getRepository(SpecialLecture).save(lecture);
-      
-          // 신청 정보 생성 및 저장
+          // 신청 정보 생성
           const registration = manager.getRepository(SpecialLectureRegist).create({
             user,
             userId: user.userId,
             specialLecture: lecture,
             specialLectureId: lecture.id,
+            status: registrationStatus,
           });
+      
+          // 신청 정보 저장
           await manager.getRepository(SpecialLectureRegist).save(registration);
       
           return registration;
         });
     }
-
+      
 
     /**
      * 사용자의 특강 신청 목록 조회 함수
